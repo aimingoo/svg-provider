@@ -1,0 +1,106 @@
+#!/bin/bash
+
+#-###############################################################################
+#- Usage:
+#-	> svg-provider <commands>
+#-	  commands: --help, --install
+#-	> svg-provider <file.svg>  options ...
+#-	  options:
+#-	    --export-png='%s'                 # string - output file
+#-	    --export-dpi='%s'                 # format - xRes,yRes
+#-	    --export-background='%s'          # format - #ff007f, or rgb(r%,g%,b%)
+#-	    --export-background-opacity='%s'  # number - 0.0 .. 1.0, or 1 .. 100
+#-###############################################################################
+
+## default setting
+INFILE="$1"
+EXPORT_PNG="${1%.svg}.png"
+EXPORT_DPI="96,96"
+EXPORT_BACKGROUND="white"		# SVG supported color string, for example "#ff007f" or "rgb(255, 0, 128)"
+EXPORT_BACKGROUND_OPACITY=""
+
+## commands or --help
+for param; do
+	if [[ "$param" == "--help" ]]; then
+		head -n 20 "$0" | grep -Ee '^#-' | sed 's/^#-//'
+		exit
+	fi
+	if [[ "$param" == "--install" ]]; then
+		# ...
+		exit
+	fi
+done
+
+## proess arguments
+for param; do
+	declare $(echo ${param%%=*} | tr '[a-z]' '[A-Z]' | sed 's/^--*//; s/-/_/g')=$(expr "$param" : '.*=\(.*\)' \| true)
+done
+DPI_X="${EXPORT_DPI%%,*}"
+DPI_Y="${EXPORT_DPI##*,}"
+
+
+##################################################################
+#                      (rsvglib and cairo based)                 #
+##################################################################
+
+## https://live.gnome.org/LibRsvg
+##	- brew install librsvg
+if which -s rsvg-convert; then
+	rsvg-convert -u --keep-image-data -f png -o "$EXPORT_PNG" -d "$DPI_X" -p "$DPI_Y" -b "${EXPORT_BACKGROUND}" "$INFILE"; exit $?
+fi
+
+##################################################################
+#                      (cairo based)                             #
+##################################################################
+
+## http://cairosvg.org/
+##	- pip install cairosvg
+if which -s cairosvg; then
+	cairosvg -o "$EXPORT_PNG" -d "$DPI_X" "$INFILE"; exit $?
+fi
+
+## https://cairographics.org/
+## - brew install svg2png
+if which -s svg2png; then
+	svg2png "$INFILE" "$EXPORT_PNG"; exit $?
+fi
+
+## https://github.com/miyako/console-svg-to-pdf
+##	# clone from github, and relink these symbols: compile depcomp missing install-sh
+##	> ./configure; make; make install
+if which -s wasvg; then
+	wasvg -p -x "$DPI_X" -y "$DPI_Y" -i "$INFILE" -o "$EXPORT_PNG"; exit $?
+fi
+
+##################################################################
+#                      (xquartz based)                           #
+##################################################################
+
+## https://inkscape.org/
+##	- brew cask install xquartz inkscape
+if which -s inkscape; then
+	if [[ `inkscape --without-gui` == "Nothing to do!" ]]; then
+		inkscape -z -e "$EXPORT_PNG" -d "$EXPORT_DPI" -b "$EXPORT_BACKGROUND" -y "${EXPORT_BACKGROUND_OPACITY:-0}" "$INFILE"; exit $?
+	fi
+fi
+
+
+##################################################################
+#                   (nodejs & PhantomJS based)                   #
+##################################################################
+ 
+
+## https://github.com/shakiba/svgexport
+##	- npm install svgexport -g
+if which -s svgexport; then
+	if [[ -n "$EXPORT_BACKGROUND_OPACITY" -a "rgb" == $(echo "${EXPORT_BACKGROUND:0:3}" | tr a-z A-Z) ]]; then
+		declare -a RGBA="${EXPORT_BACKGROUND:3}"
+		RGBA+=(", $EXPORT_BACKGROUND_OPACITY")
+		svgexport "$INFILE" "$EXPORT_PNG" png "svg{background:rgba(${RGBA[@]});}"; exit $?
+	else
+		svgexport "$INFILE" "$EXPORT_PNG" png "svg{background:$EXPORT_BACKGROUND;}"; exit $?
+	fi
+fi
+
+
+exit 1
