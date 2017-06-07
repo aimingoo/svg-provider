@@ -10,7 +10,7 @@ Clone the project and install it.
 
 ```bash
 > git clone https://github.com/aimingoo/svg-provider
-> cd svg-provider && install !$ /usr/local/bin/
+> install svg-provider/svg-provider /usr/local/bin/
 
 # OR
 > cp svg-provider/svg-provider /usr/local/bin/
