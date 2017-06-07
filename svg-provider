@@ -1,6 +1,8 @@
 #!/bin/bash
 
 #-###############################################################################
+#- Svg convert provider for ImageMagick delegate(internal)
+#- Version: 1.01
 #- Usage:
 #-	> svg-provider <commands>
 #-	  commands: --help, --install
@@ -11,16 +13,19 @@
 #-	    --export-png='%s'                 # string - output file
 #-	    --export-dpi='%s'                 # format - xRes,yRes
 #-	    --export-background='%s'          # format - #ff007f, or rgb(r%,g%,b%)
-#-	    --export-background-opacity='%s'  # number - 0.0 .. 1.0, or 1 .. 100
+#-	    --export-background-opacity='%s'  # number - 0.0 .. 1, or 2 .. 255
+## Author: aimingoo
+## Web: https://github.com/aimingoo/svg-provider
 #-###############################################################################
 
 ## default setting
 INFILE="$1"
 FORCE=false
 EXPORT_PNG="${1%.svg}.png"
-EXPORT_DPI="96,96"
-EXPORT_BACKGROUND="white"		# SVG supported color string, for example "#ff007f" or "rgb(255, 0, 128)"
-EXPORT_BACKGROUND_OPACITY=""
+EXPORT_DPI="96,96"            # 96,96
+EXPORT_BACKGROUND="white"     # rbg(100%,100%,100%)
+EXPORT_BACKGROUND_OPACITY=""  # 1
+
 
 ## commands or --help
 for param; do
