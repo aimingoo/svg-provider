@@ -9,6 +9,9 @@ Svg convert provider for ImageMagick delegate(internal).
 Clone the project and install it.
 
 ```bash
+> brew install aimingoo/repo/svg-provider
+
+# OR
 > git clone https://github.com/aimingoo/svg-provider
 > install svg-provider/svg-provider /usr/local/bin/
 
@@ -25,13 +28,11 @@ You can direct execute `svg-provider` in console without ImageMagick. A simple c
 
 ```bash
 > svg-provider --help
-###############################################################################
  Svg convert provider for ImageMagick delegate(internal)
- Version: 1.01
  Usage:
 	> svg-provider <commands>
-	  commands: --help, --install
-	> svg-provider <file.svg>  options ...
+	  commands: --help, --version, --install, --uninstall, --info
+	> svg-provider <file.svg> options ...
 	  support: rsvg-convert cairosvg svg2png wasvg inkscape svgexport
 	  options:
 	    --force='%s'                      # force use a converter
@@ -39,22 +40,39 @@ You can direct execute `svg-provider` in console without ImageMagick. A simple c
 	    --export-dpi='%s'                 # format - xRes,yRes
 	    --export-background='%s'          # format - #ff007f, or rgb(r%,g%,b%)
 	    --export-background-opacity='%s'  # number - 0.0 .. 1, or 2 .. 255
-###############################################################################
+ Version: 1.0.2
 ```
 
-
-
-Or, use `svg-provider --install` to install the tool into ImageMagick internal delegate list, and check it:
+Or, use `--install` or `--uninstall` to (un)install the tool for ImageMagick internal delegate list, and check it:
 
 ```bash
-> convert -list delegate | grep 'svg:decode'
- svg:decode =>          "svg-provider' '%s' ...
+# show internal delegate information
+> svg-provider --info
+  <delegate decode="svg:decode" stealth="True" command="&quot;inkscape&quot; ...
+
+# install
+> svg-provider --install
+
+# OR, install and force to cairosvg
+> svg-provider --install --force=cairosvg
+
+# OR, uninstall
+> svg-provider --uninstall
 ```
 
 
 
 ## why?
 
-The utility replace ImageMagick's  internal delegate for `msvg:` format type, and redirect internal convert (.svg to .png) to your special configuration.
+The utility replace ImageMagick's internal delegate for `msvg:` format type, and redirect internal convert (.svg to .png) to your special configuration.
 
 Read these documents ([Chinese](https://aimingoo.github.io/1-1727.html)), if you want to know more.
+
+
+
+## History
+
+```
+2017.10.04 v1.0.2 released, implement --(un)install and --info
+2017.06.08 Initalization release
+```

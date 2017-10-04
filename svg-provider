@@ -1,12 +1,11 @@
 #!/bin/bash
 
-#-###############################################################################
+#################################################################################
 #- Svg convert provider for ImageMagick delegate(internal)
-#- Version: 1.01
 #- Usage:
 #-	> svg-provider <commands>
-#-	  commands: --help, --install
-#-	> svg-provider <file.svg>  options ...
+#-	  commands: --help, --version, --install, --uninstall, --info
+#-	> svg-provider <file.svg> options ...
 #-	  support: some converter in this provider
 #-	  options:
 #-	    --force='%s'                      # force use a converter
@@ -14,9 +13,10 @@
 #-	    --export-dpi='%s'                 # format - xRes,yRes
 #-	    --export-background='%s'          # format - #ff007f, or rgb(r%,g%,b%)
 #-	    --export-background-opacity='%s'  # number - 0.0 .. 1, or 2 .. 255
+#- Version: 1.0.2
 ## Author: aimingoo
-## Web: https://github.com/aimingoo/svg-provider
-#-###############################################################################
+## Site: https://github.com/aimingoo/svg-provider
+#################################################################################
 
 ## default setting
 INFILE="$1"
@@ -26,15 +26,54 @@ EXPORT_DPI="96,96"            # 96,96
 EXPORT_BACKGROUND="white"     # rbg(100%,100%,100%)
 EXPORT_BACKGROUND_OPACITY=""  # 1
 
-
 ## commands or --help
 for param; do
 	if [[ "$param" == "--help" ]]; then
 		head -n 20 "$0" | grep -Ee '^#-' | sed "s/^#-//; s/support: .*/support: $(grep -Eo 'which-s [^;\\[]{1,}' $0 | cut -f2 -d' ' | xargs)/"
 		exit
 	fi
-	if [[ "$param" == "--install" ]]; then
-		# ...
+	if [[ "$param" == "--version" ]]; then
+		head -n 20 $0 | grep -Eie '^#-[ 	]*version[: 	]+' | grep -Eoe '[0-9]+\..*'
+		exit
+	fi
+	if [[ "$param" == "--install" ]] || [[ "$param" == "--uninstall" ]] || [[ "$param" == "--info" ]]; then
+		delegates_xml=$(convert -list delegate | grep '^Path:' | sed 's/^Path: *//')
+		if [[ -f "$delegates_xml" ]]; then
+			if [[ "$param" == "--info" ]]; then
+				grep -Fe 'svg:decode' $delegates_xml | grep --color -Ee 'svg:decode|command'
+				exit
+			fi
+
+			provider="$0"
+			more_arguments=""
+			if [[ "$param" == "--install" ]]; then
+				for param_extra; do
+					if [[ "$param_extra" =~ ^--*[fF][oO][rR][cC][eE]= ]]; then
+						more_arguments="${param_extra} "
+						break
+					fi
+				done
+			else
+				provider="inkscape"
+			fi
+
+			## sed -i, compatible macosx and gnu
+			##	- Replace with condition: https://stackoverflow.com/a/11958590/8673626
+			if sed --version 2>&1 | grep -q 'illegal option'; then
+				sed -i '' -e '/svg:decode/ s| *--force=[^ ]*||; /svg:decode/ s|\(command *= *"&quot;\)[^&]*\(&quot; *&quot;%s&quot;\) *'"|\1${provider}\2 ${more_arguments}|" "${delegates_xml}"
+			else
+				sed -i'' -e '/svg:decode/ s| *--force=[^ ]*||; /svg:decode/ s|\(command *= *"&quot;\)[^&]*\(&quot; *&quot;%s&quot;\) *'"|\1${provider}\2 ${more_arguments}|" "${delegates_xml}"
+			fi
+
+			## recheck
+			if grep -Eqe "svg:decode.*${provider}" "${delegates_xml}"; then
+				echo 'ImageMagick internal delegate (un)installed.'
+			else
+				echo '(Un)install invalid.'
+			fi
+		else
+			echo "Can't found ImageMagick."
+		fi
 		exit
 	fi
 done
@@ -47,12 +86,12 @@ DPI_X="${EXPORT_DPI%%,*}"
 DPI_Y="${EXPORT_DPI##*,}"
 
 ##################################################################
-#             rewrite fwhich to force anything                   #
+#             rewrite which to force anything                   #
 ##################################################################
-if [ $FORCE ]; then 
-	which-s() { [[ "$1" == "$FORCE" ]]; }
-else
+if [[ "$FORCE" == "false" ]]; then 
 	which-s() { which -s $@; };
+else
+	which-s() { [[ "$1" == "$FORCE" ]]; }
 fi
 
 ##################################################################
